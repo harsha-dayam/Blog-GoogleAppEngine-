@@ -148,8 +148,8 @@ class PostPage(BlogHandler):
         if not post:
             self.error(404)
             return
-        # comments = db.GqlQuery("select * from Comment where post = :1", post_id)
-        self.render("permalink.html", post = post, id = post_id)
+        comments = db.GqlQuery("select * from Comment where post = :1", post_id)
+        self.render("permalink.html", post = post, id = post_id, comments = comments)
 
 
 class NewPost(BlogHandler):
@@ -244,18 +244,28 @@ class Comment(db.Model):
     user = db.StringProperty(required = True)
     post = db.StringProperty(required = True)
 
-    # def render(self):
-    #     self._render_text = self.content.replace('\n', '<br>')
-    #     return render_str("postcomment.html", c = self)
+    def render(self):
+        self._render_text = self.content.replace('\n', '<br>')
+        return render_str("postcomment.html", c = self)
 
-class Comment(BlogHandler):
+class AddComment(BlogHandler):
     def get(self, post_id):
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+        if not post:
+            self.error(404)
+            return
         if self.user:
             self.render("comment.html")
         else:
             self.redirect("/login")
 
     def post(self, post_id):
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+        if not post:
+            self.error(404)
+            return
         if not self.user:
             self.redirect('/blog')
 
@@ -269,25 +279,59 @@ class Comment(BlogHandler):
             error = 'Comment, please!'
             self.render('comment.html', content=content, error=error)
 
-# class EditComment(BlogHandler):
-#     def get(self, post_id, comment_id):
-#         if self.user:
-#             self.render("comment.html")
-#         else:
-#             self.redirect("/login")
+class EditComment(BlogHandler):
+    def get(self, post_id, id):
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+        if not post:
+            self.error(404)
+            return
+        comment = Comment.get_by_id(int(id), Post.get_by_id(int(post_id)))
+        if not self.user:
+            self.redirect("/login")
+        elif not self.user.name == comment.user:
+            self.write('You are not allowed to edit this comment')
+        else:
+            content = comment.content
+            self.render('comment.html', content=content, post_id=post_id)
 
-#     def post(self, post_id, comment_id):
-#         pass
+    def post(self, post_id, id):
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+        if not post:
+            self.error(404)
+            return
+        comment = Comment.get_by_id(int(id), Post.get_by_id(int(post_id)))
+        if (not self.user) or (not self.user.name == comment.user):
+            return self.redirect('/login')
 
-# class DeleteComment(BlogHandler):
-#     def get(self, post_id, comment_id):
-#         if self.user:
-#             self.render("comment.html")
-#         else:
-#             self.redirect("/login")
+        content = self.request.get('content')
 
-#     def post(self, post_id):
-#         pass       
+        if content:
+            c = Comment.get_by_id(int(id), Post.get_by_id(int(post_id)))
+            c.content = content
+            c.put()
+            self.redirect('/blog/%s' % post_id)
+        else:
+            error = 'Please, enter some content!'
+            self.render('comment.html', content=content, error=error, post_id=post_id)
+
+class DeleteComment(BlogHandler):
+    def get(self, post_id, id):
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+        comment = Comment.get_by_id(int(id), Post.get_by_id(int(post_id)))
+        if not self.user:
+            self.redirect('/blog')
+        if not post:
+            self.error(404)
+            return
+        if self.user.name == comment.user:
+            comment.delete()
+            self.redirect('/blog/%s' % post_id)
+        else:
+            error="You are not allowed to delete this post"
+            self.render("permalink.html", post= post, error= error, id = post_id)  
 
 ###### user registration stuff
 
@@ -384,8 +428,8 @@ app = webapp2.WSGIApplication([('/', MainPage),
                                ('/logout', Logout),
                                ('/blog/([0-9]+)/editpost', EditPost),
                                ('/blog/([0-9]+)/deletepost', DeletePost),
-                               ('/blog/([0-9]+)/comment', Comment)
-                               # ('/([0-9]+)/editcomment/([0-9]+)', EditComment),
-                               # ('/([0-9]+)/deletecomment/([0-9]+)', DeleteComment)
+                               ('/blog/([0-9]+)/comment', AddComment),
+                               ('/blog/([0-9]+)/editcomment/([0-9]+)', EditComment),
+                               ('/blog/([0-9]+)/deletecomment/([0-9]+)', DeleteComment)
                                ],
                               debug=True)

@@ -5,21 +5,15 @@
 {{post.render() | safe}}
 <a href="/blog/{{id}}/editpost">edit</a>
 <a href="/blog/{{id}}/deletepost">delete</a>
- <!-- <form method="post">
- <textarea name="comment">{{comment}}</textarea>
- <input type="submit" name="">	
-</form> -->
-<form method="get">
-	<button name="like" type="submit" value="{{like}}">Like {{like}}</button>
-</form>
+
 <p><a href="/blog/{{id}}/comment">Add Comment</a></p>
 <p>Comments:</p>
 {% for comment in comments %}
 <div>
 	<p>{{comment.content}}</p>
 	<p>by {{comment.user}}</p>
-	<a href="blog/{{id}}/editcomment/{{comment.key().id()}}">Edit</a>
-	<a href="blog/{{id}}/deletecomment/{{comment.key().id()}}/delete">Delete</a>
+	<a href="/blog/{{id}}/editcomment/{{comment.key().id()}}">Edit</a>
+	<a href="/blog/{{id}}/deletecomment/{{comment.key().id()}}">Delete</a>
 </div>
 {% endfor %}
 {% endblock %}
