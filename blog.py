@@ -3,6 +3,7 @@ import re
 import random
 import hashlib
 import hmac
+import time
 from string import letters
 
 import webapp2
@@ -231,6 +232,7 @@ class DeletePost(BlogHandler):
             return
         if post.user==self.user.name:
             post.delete()
+            time.sleep(0.1)
             self.redirect('/blog')
         else:
             error="You are not allowed to delete this post"
@@ -311,6 +313,7 @@ class EditComment(BlogHandler):
             c = Comment.get_by_id(int(id), Post.get_by_id(int(post_id)))
             c.content = content
             c.put()
+            time.sleep(0.1)
             self.redirect('/blog/%s' % post_id)
         else:
             error = 'Please, enter some content!'
@@ -328,6 +331,7 @@ class DeleteComment(BlogHandler):
             return
         if self.user.name == comment.user:
             comment.delete()
+            time.sleep(0.1)
             self.redirect('/blog/%s' % post_id)
         else:
             error="You are not allowed to delete this post"
