@@ -117,7 +117,7 @@ class Like(db.Model):
     
 class MainPage(BlogHandler):
   def get(self):
-      self.write('Hello, Udacity!')
+      self.redirect('/blog')
 
 
 ##### blog stuff
